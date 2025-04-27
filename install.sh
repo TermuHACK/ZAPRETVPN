@@ -3,7 +3,7 @@ set -e
 
 # Обновление и установка нужного софта
 apt update
-apt install -y tinyproxy shadowsocks-libev curl wget unzip socat screen net-tools qrencode jq openssh-client
+apt install -y tinyproxy shadowsocks-libev curl wget unzip socat screen net-tools qrencode jq
 
 # Переменные
 PASS="Dvdr00"
@@ -19,37 +19,60 @@ cd trojan || exit
 chmod +x trojan
 cd ..
 
-# Меню выбора
-echo "Выберите параметры настройки:"
-echo "1. Анонимность"
-echo "2. Шифрование"
-echo "3. Скорость"
-echo "4. Обход блокировок"
-read -p "Введите номер (1-4): " privacy_choice
+# Настройка Tinyproxy
+sed -i 's/^#Allow 127.0.0.1/Allow 0.0.0.0/' /etc/tinyproxy/tinyproxy.conf
+sed -i 's/^Port 8888/Port 8888/' /etc/tinyproxy/tinyproxy.conf
 
-# Базовая настройка в зависимости от выбора
-case $privacy_choice in
-    1)
-        echo "Вы выбрали Анонимность."
-        ANONYMITY="true"
-        ;;
-    2)
-        echo "Вы выбрали Шифрование."
-        ENCRYPTION="true"
-        ;;
-    3)
-        echo "Вы выбрали Скорость."
-        SPEED="true"
-        ;;
-    4)
-        echo "Вы выбрали Обход блокировок."
-        BYPASS="true"
-        ;;
-    *)
-        echo "Неверный выбор. Выход."
-        exit 1
-        ;;
-esac
+# Настройка Shadowsocks
+cat <<EOF > ~/ss.json
+{
+    "server":"0.0.0.0",
+    "server_port":8388,
+    "password":"$PASS",
+    "timeout":300,
+    "method":"aes-256-gcm"
+}
+EOF
 
-# Запуск установки и перенаправление в setup.sh
-echo "Настройка завершена. Перейдите к setup.sh для настройки профилей."
+# Настройка Xray (VMess)
+mkdir -p /usr/local/etc/xray
+cat <<EOF > /usr/local/etc/xray/config.json
+{
+  "inbounds": [{
+    "port": 10086,
+    "protocol": "vmess",
+    "settings": {
+      "clients": [{
+        "id": "$UUID",
+        "alterId": 0
+      }]
+    },
+    "streamSettings": {
+      "network": "tcp"
+    }
+  }],
+  "outbounds": [{
+    "protocol": "freedom",
+    "settings": {}
+  }]
+}
+EOF
+
+# Настройка Trojan
+cat <<EOF > ~/trojan-config.json
+{
+  "run_type": "server",
+  "local_addr": "0.0.0.0",
+  "local_port": 4433,
+  "remote_addr": "127.0.0.1",
+  "remote_port": 80,
+  "password": ["$PASS"],
+  "ssl": {
+    "verify": false,
+    "cert": "",
+    "key": ""
+  }
+}
+EOF
+
+echo "✅ Базовая установка завершена! Теперь запусти setup.sh"
