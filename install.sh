@@ -9,6 +9,9 @@ apt install -y tinyproxy shadowsocks-libev curl wget unzip socat screen net-tool
 PASS="Dvdr00"
 UUID=$(cat /proc/sys/kernel/random/uuid)
 
+# Сохраняем UUID для setup.sh
+echo "$UUID" > ~/uuid.txt
+
 # Установка Xray-core
 bash <(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)
 
